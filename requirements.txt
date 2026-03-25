@@ -1,0 +1,11 @@
+# Morning News Collector - 必要ライブラリ
+
+# Claude API クライアント
+anthropic>=0.40.0
+
+# RSS フィードパーサー
+feedparser>=6.0.11
+
+# Google Sheets API クライアント�hgspreadはSheetsAPIのラッパー）
+gspread>=6.0.0
+google-auth>=2.27.0
