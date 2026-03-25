@@ -1,0 +1,44 @@
+# ============================================================
+# GitHub Actions ワークフロー
+# 配置先: リポジトリの .github/workflows/morning_news.yml
+# ============================================================
+
+name: Morning News Collector
+
+on:
+  # 毎朝8時（JST）= UTC 23:00（前日）に自動実行
+  schedule:
+    - cron: '0 23 * * *'
+
+  # GitHubの画面から手動実行したい場合に使用
+  workflow_dispatch:
+
+jobs:
+  collect-news:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. リポジトリをチェックアウト
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Python 3.11 をセットアップ
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # 3. ライブラリをインストール（pip キャッシュで高速化）
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # 4. メインスクリプトを実行
+      #    シークレットは Settings > Secrets and variables > Actions で設定
+      - name: Run news collector
+        env:
+          ANTHROPIC_API_KEY:        ${{ secrets.ANTHROPIC_API_KEY }}
+          GOOGLE_CREDENTIALS_JSON:  ${{ secrets.GOOGLE_CREDENTIALS_JSON }}
+          SPREADSHEET_ID:           ${{ secrets.SPREADSHEET_ID }}
+        run: python news_collector.py
