@@ -3,7 +3,7 @@ Morning News Collector
 毎朝ニュース・競合動向・マーケティング事例を収集し、
 Gemini APIで分析してGoogleスプレッドシートに記録する。
 """
-import os 
+import os
 import json
 import time
 import re
