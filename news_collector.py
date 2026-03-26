@@ -1,7 +1,7 @@
 """
 Morning News Collector
-毎朝ニュース・競合動向・マーケティング事例を収集し、
-Gemini APIで分析してGoogleスプレッドシートに記録する。
+æ¯æãã¥ã¼ã¹ã»ç«¶åååã»ãã¼ã±ãã£ã³ã°äºä¾ãåéãã
+Gemini APIã§åæãã¦Googleã¹ãã¬ããã·ã¼ãã«è¨é²ããã
 """
 import os
 import json
@@ -14,13 +14,13 @@ from google.oauth2.service_account import Credentials
 from datetime import datetime
 
 # ============================================================
-# 設定
+# è¨­å®
 # ============================================================
 GOOGLE_NEWS_KEYWORDS = [
     "ELECOM",
-    "CIO ガジェット",
+    "CIO ã¬ã¸ã§ãã",
     "UGREEN",
-    "SONY ガジェット",
+    "SONY ã¬ã¸ã§ãã",
     "iRobot",
     "PLAUDE AI",
 ]
@@ -28,7 +28,7 @@ GOOGLE_NEWS_KEYWORDS = [
 MARKETING_RSS_FEEDS = {
     "MarkeZine": "https://markezine.jp/rss/20/index.rss",
     "AdWeek": "https://www.adweek.com/feed/",
-    "日経ニュース": "https://news.google.com/rss/search?q=日本経済新聞+ビジネス&hl=ja&gl=JP&ceid=JP:ja",
+    "æ¥çµãã¥ã¼ã¹": "https://news.google.com/rss/search?q=æ¥æ¬çµæ¸æ°è+ãã¸ãã¹&hl=ja&gl=JP&ceid=JP:ja",
 }
 
 GOOGLE_NEWS_RSS = (
@@ -41,8 +41,9 @@ MAX_ARTICLES_PER_FEED = 5
 API_CALL_DELAY = 0.5
 GEMINI_MODEL = "gemini-1.5-flash"
 
+
 # ============================================================
-# RSSフェッチ
+# RSSãã§ãã
 # ============================================================
 def fetch_google_news(keyword: str) -> list:
     url = GOOGLE_NEWS_RSS.format(query=keyword.replace(" ", "+"))
@@ -58,8 +59,9 @@ def fetch_google_news(keyword: str) -> list:
             })
         return results
     except Exception as e:
-        print(f"WARNING: Google News RSS取得エラー [{keyword}]: {e}")
+        print(f"WARNING: Google News RSSåå¾ã¨ã©ã¼ [{keyword}]: {e}")
         return []
+
 
 def fetch_rss_feed(source_name: str, feed_url: str) -> list:
     try:
@@ -74,33 +76,38 @@ def fetch_rss_feed(source_name: str, feed_url: str) -> list:
             })
         return results
     except Exception as e:
-        print(f"WARNING: RSS取得エラー [{source_name}]: {e}")
+        print(f"WARNING: RSSåå¾ã¨ã©ã¼ [{source_name}]: {e}")
         return []
+
 
 def _strip_html(text: str) -> str:
     text = re.sub(r"<[^>]+>", "", text)
     text = re.sub(r"\s+", " ", text).strip()
     return text[:800]
 
-# ============================================================
-# Gemini API 分析
-# ============================================================
-def analyze_article(model, title: str, description: str):
-    prompt = f"""以下の記事を分析し、指定のJSON形式のみで回答してください。
 
-タイトル: {title}
-内容: {description}
+# ============================================================
+# Gemini API åæ
+# ============================================================
+def analyze_article(client, title: str, description: str):
+    prompt = f"""ä»¥ä¸ã®è¨äºãåæããæå®ã®JSONå½¢å¼ã®ã¿ã§åç­ãã¦ãã ããã
+
+ã¿ã¤ãã«: {title}
+åå®¹: {description}
 
 {{
-  "summary": "3行以内で記事の要点を要約（日本語）",
-  "category": "一般ニュース" または "競合動向" または "マーケ事例" のいずれか1つ,
-  "insight": "この記事からマーケティング施策に活かせる示唆を1〜2文（日本語）"
+  "summary": "3è¡ä»¥åã§è¨äºã®è¦ç¹ãè¦ç´ï¼æ¥æ¬èªï¼",
+  "category": "ä¸è¬ãã¥ã¼ã¹" ã¾ãã¯ "ç«¶ååå" ã¾ãã¯ "ãã¼ã±äºä¾" ã®ãããã1ã¤,
+  "insight": "ãã®è¨äºãããã¼ã±ãã£ã³ã°æ½ç­ã«æ´»ãããç¤ºåã1ã2æï¼æ¥æ¬èªï¼"
 }}
 
-JSONのみ出力してください。説明文は不要です。"""
+JSONã®ã¿åºåãã¦ãã ãããèª¬ææã¯ä¸è¦ã§ãã"""
 
     try:
-        response = model.generate_content(prompt)
+        response = client.models.generate_content(
+            model=GEMINI_MODEL,
+            contents=prompt,
+        )
         raw_text = response.text.strip()
         raw_text = re.sub(r"^```json\s*", "", raw_text)
         raw_text = re.sub(r"\s*```$", "", raw_text)
@@ -108,19 +115,21 @@ JSONのみ出力してください。説明文は不要です。"""
         if json_match:
             return json.loads(json_match.group())
         else:
-            print(f"WARNING: JSON解析失敗: {raw_text[:100]}")
+            print(f"WARNING: JSONè§£æå¤±æ: {raw_text[:100]}")
             return None
     except json.JSONDecodeError as e:
-        print(f"WARNING: JSONデコードエラー: {e}")
+        print(f"WARNING: JSONãã³ã¼ãã¨ã©ã¼: {e}")
         return None
     except Exception as e:
-        print(f"WARNING: Gemini APIエラー: {e}")
+        print(f"WARNING: Gemini APIã¨ã©ã¼: {e}")
         return None
 
+
 # ============================================================
-# Google Sheets 書き込み
+# Google Sheets æ¸ãè¾¼ã¿
 # ============================================================
-SHEET_HEADERS = ["日付", "カテゴリ", "タイトル", "要約", "示唆", "URL", "ソース"]
+SHEET_HEADERS = ["æ¥ä»", "ã«ãã´ãª", "ã¿ã¤ãã«", "è¦ç´", "ç¤ºå", "URL", "ã½ã¼ã¹"]
+
 
 def get_or_create_worksheet(gc, spreadsheet_id: str):
     sh = gc.open_by_key(spreadsheet_id)
@@ -128,8 +137,9 @@ def get_or_create_worksheet(gc, spreadsheet_id: str):
     existing = worksheet.row_values(1)
     if existing != SHEET_HEADERS:
         worksheet.insert_row(SHEET_HEADERS, index=1)
-        print("OK: ヘッダー行を追加しました")
+        print("OK: ãããã¼è¡ãè¿½å ãã¾ãã")
     return worksheet
+
 
 def get_existing_urls(worksheet) -> set:
     try:
@@ -138,26 +148,27 @@ def get_existing_urls(worksheet) -> set:
     except Exception:
         return set()
 
+
 def write_rows_to_sheet(worksheet, rows: list) -> None:
     if not rows:
         return
     worksheet.append_rows(rows, value_input_option="USER_ENTERED")
 
+
 # ============================================================
-# メイン処理
+# ã¡ã¤ã³å¦ç
 # ============================================================
 def main():
     print("\n" + "=" * 50)
-    print(f"  Morning News Collector 起動 {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+    print(f" Morning News Collector èµ·å {datetime.now().strftime('%Y-%m-%d %H:%M')}")
     print("=" * 50 + "\n")
 
     required_env = ["GEMINI_API_KEY", "GOOGLE_CREDENTIALS_JSON", "SPREADSHEET_ID"]
     for key in required_env:
         if not os.environ.get(key):
-            raise EnvironmentError(f"環境変数 {key} が設定されていません")
+            raise EnvironmentError(f"ç°å¢å¤æ° {key} ãè¨­å®ããã¦ãã¾ãã")
 
-    genai.configure(api_key=os.environ["GEMINI_API_KEY"])
-    gemini_model = genai.GenerativeModel(GEMINI_MODEL)
+    client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
 
     creds_info = json.loads(os.environ["GOOGLE_CREDENTIALS_JSON"])
     creds = Credentials.from_service_account_info(
@@ -168,25 +179,27 @@ def main():
         ],
     )
     gc = gspread.authorize(creds)
+
     spreadsheet_id = os.environ["SPREADSHEET_ID"]
     worksheet = get_or_create_worksheet(gc, spreadsheet_id)
     existing_urls = get_existing_urls(worksheet)
-    print(f"既存記事URL数（重複除外用）: {len(existing_urls)}\n")
+    print(f"æ¢å­è¨äºURLæ°ï¼éè¤é¤å¤ç¨ï¼: {len(existing_urls)}\n")
 
     articles = []
-    print("Google News RSSを取得中...")
+
+    print("Google News RSSãåå¾ä¸­...")
     for keyword in GOOGLE_NEWS_KEYWORDS:
         fetched = fetch_google_news(keyword)
         articles.extend(fetched)
-        print(f"  [{keyword}] {len(fetched)}件取得")
+        print(f"  [{keyword}] {len(fetched)}ä»¶åå¾")
 
-    print("\nマーケ系RSSを取得中...")
+    print("\nãã¼ã±ç³»RSSãåå¾ä¸­...")
     for source_name, feed_url in MARKETING_RSS_FEEDS.items():
         fetched = fetch_rss_feed(source_name, feed_url)
         articles.extend(fetched)
-        print(f"  [{source_name}] {len(fetched)}件取得")
+        print(f"  [{source_name}] {len(fetched)}ä»¶åå¾")
 
-    print(f"\n合計 {len(articles)} 件の記事を取得しました\n")
+    print(f"\nåè¨ {len(articles)} ä»¶ã®è¨äºãåå¾ãã¾ãã\n")
 
     seen_urls = set(existing_urls)
     unique_articles = []
@@ -194,25 +207,27 @@ def main():
         if article["url"] and article["url"] not in seen_urls:
             seen_urls.add(article["url"])
             unique_articles.append(article)
-    print(f"重複除去後: {len(unique_articles)} 件\n")
+
+    print(f"éè¤é¤å»å¾: {len(unique_articles)} ä»¶\n")
 
     today = datetime.now().strftime("%Y-%m-%d")
     rows_to_write = []
     success_count = 0
     error_count = 0
 
-    print("Gemini APIで記事を分析中...")
+    print("Gemini APIã§è¨äºãåæä¸­...")
     for i, article in enumerate(unique_articles, 1):
         title = article["title"]
         description = article["description"]
         if not title:
             continue
+
         print(f"  ({i}/{len(unique_articles)}) {title[:60]}...")
-        analysis = analyze_article(gemini_model, title, description)
+        analysis = analyze_article(client, title, description)
         if analysis:
             rows_to_write.append([
                 today,
-                analysis.get("category", "一般ニュース"),
+                analysis.get("category", "ä¸è¬ãã¥ã¼ã¹"),
                 title,
                 analysis.get("summary", ""),
                 analysis.get("insight", ""),
@@ -222,14 +237,16 @@ def main():
             success_count += 1
         else:
             error_count += 1
+
         time.sleep(API_CALL_DELAY)
 
-    print(f"\nGoogleスプレッドシートへ書き込み中... ({len(rows_to_write)}件)")
+    print(f"\nGoogleã¹ãã¬ããã·ã¼ãã¸æ¸ãè¾¼ã¿ä¸­... ({len(rows_to_write)}ä»¶)")
     write_rows_to_sheet(worksheet, rows_to_write)
 
     print("\n" + "=" * 50)
-    print(f"  完了! 成功: {success_count}件 / エラー: {error_count}件")
+    print(f" å®äº! æå: {success_count}ä»¶ / ã¨ã©ã¼: {error_count}ä»¶")
     print("=" * 50 + "\n")
+
 
 if __name__ == "__main__":
     main()
