@@ -236,6 +236,16 @@ def main():
             ])
             success_count += 1
         else:
+            # Gemini分析失敗時もタイトルとURLを書き込む
+            rows_to_write.append([
+                today,
+                "一般ニュース",
+                title,
+                "（AI分析スキップ）",
+                "",
+                article["url"],
+                article["source"],
+            ])
             error_count += 1
 
         time.sleep(API_CALL_DELAY)
