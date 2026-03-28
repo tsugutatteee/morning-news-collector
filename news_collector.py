@@ -39,7 +39,7 @@ GOOGLE_NEWS_RSS = (
 MAX_ARTICLES_PER_KEYWORD = 3
 MAX_ARTICLES_PER_FEED = 3
 API_CALL_DELAY = 5
-GEMINI_MODEL = "gemini-2.0-flash"
+GEMINI_MODEL = "gemini-2.0-flash-lite"
 
 
 # ============================================================
